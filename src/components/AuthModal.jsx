@@ -1,6 +1,7 @@
-
 import React, { useState } from 'react'
+
 import { useAuth } from '../context/AuthContext'
+
 import {
   X,
   Mail,
@@ -22,12 +23,17 @@ export default function AuthModal({
   initialMode = 'login',
 }) {
   const [mode, setMode] = useState(initialMode)
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
+
   const [department, setDepartment] = useState(
     'Computer Science & Engineering'
   )
+
+  // New: let users choose Student or Resource Owner.
+  const [role, setRole] = useState('student')
 
   const [isLoading, setIsLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
@@ -52,7 +58,9 @@ export default function AuthModal({
 
   const validate = () => {
     if (!email.trim()) {
-      setErrorMsg('Please enter your university or personal email.')
+      setErrorMsg(
+        'Please enter your university or personal email.'
+      )
       return false
     }
 
@@ -60,7 +68,7 @@ export default function AuthModal({
 
     if (!emailRegex.test(email.trim())) {
       setErrorMsg(
-        'Please enter a valid email address (e.g. student@campus.edu).'
+        'Please enter a valid email address.'
       )
       return false
     }
@@ -71,7 +79,9 @@ export default function AuthModal({
     }
 
     if (password.length < 6) {
-      setErrorMsg('Password must be at least 6 characters long.')
+      setErrorMsg(
+        'Password must be at least 6 characters long.'
+      )
       return false
     }
 
@@ -82,7 +92,14 @@ export default function AuthModal({
       }
 
       if (!department.trim()) {
-        setErrorMsg('Please select or specify your department.')
+        setErrorMsg(
+          'Please select or specify your department.'
+        )
+        return false
+      }
+
+      if (!['student', 'owner'].includes(role)) {
+        setErrorMsg('Please select a valid account type.')
         return false
       }
     }
@@ -101,7 +118,7 @@ export default function AuthModal({
 
     if (!isConfigured) {
       setErrorMsg(
-        'Supabase is not configured yet. Please configure VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in .env.local to enable live authentication.'
+        'Supabase is not configured. Please check your environment variables.'
       )
       return
     }
@@ -117,6 +134,7 @@ export default function AuthModal({
           password,
           fullName: fullName.trim(),
           department,
+          role,
         })
 
         if (
@@ -124,7 +142,7 @@ export default function AuthModal({
           data.user.identities.length === 0
         ) {
           setErrorMsg(
-            'An account with this email address already exists. Please sign in instead.'
+            'An account with this email already exists. Please sign in instead.'
           )
           return
         }
@@ -133,11 +151,13 @@ export default function AuthModal({
           setIsConfirmationPending(true)
 
           setSuccessMsg(
-            'Account created! A confirmation email has been sent. Please check your inbox and spam folder to activate your account before logging in.'
+            'Account created! If email confirmation is enabled, check your inbox and spam folder before signing in.'
           )
         } else if (data?.user && data?.session) {
           setSuccessMsg(
-            'Account created successfully! Welcome to CampusShare.'
+            `Account created successfully! Your selected account type is ${
+              role === 'owner' ? 'Resource Owner' : 'Student'
+            }.`
           )
 
           setTimeout(() => {
@@ -166,7 +186,8 @@ export default function AuthModal({
       console.error('[AuthModal] Auth error:', err)
 
       const message =
-        err?.message || 'An error occurred during authentication.'
+        err?.message ||
+        'An error occurred during authentication.'
 
       const lowerMessage = message.toLowerCase()
 
@@ -180,11 +201,7 @@ export default function AuthModal({
         lowerMessage.includes('too many requests') ||
         lowerMessage.includes(
           'for security purposes, you can only request this once'
-        ) ||
-        (err?.code &&
-          String(err.code)
-            .toLowerCase()
-            .includes('over_email_send_rate_limit'))
+        )
 
       if (isRateLimit) {
         setErrorMsg(
@@ -196,13 +213,17 @@ export default function AuthModal({
         setErrorMsg(
           'Invalid email or password. Please double-check and try again.'
         )
-      } else if (lowerMessage.includes('already registered')) {
+      } else if (
+        lowerMessage.includes('already registered')
+      ) {
         setErrorMsg(
           'This email is already registered. Please log in instead.'
         )
-      } else if (lowerMessage.includes('email not confirmed')) {
+      } else if (
+        lowerMessage.includes('email not confirmed')
+      ) {
         setErrorMsg(
-          'Your email address has not been confirmed yet. Please verify your email using the confirmation link sent by Supabase.'
+          'Your email address has not been confirmed. Please follow the confirmation link sent by Supabase.'
         )
       } else {
         setErrorMsg(message)
@@ -248,20 +269,21 @@ export default function AuthModal({
         {/* Header */}
         <div className="relative overflow-hidden bg-slate-900 px-6 pb-7 pt-7 text-white sm:px-8">
           <div className="pointer-events-none absolute -right-12 -top-14 h-48 w-48 rounded-full bg-teal-500/15 blur-2xl" />
+
           <div className="pointer-events-none absolute -bottom-20 left-10 h-36 w-36 rounded-full bg-teal-400/10 blur-2xl" />
 
           <button
             type="button"
             onClick={onClose}
             disabled={isLoading}
-            className="absolute right-4 top-4 z-10 rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="absolute right-4 top-4 z-10 rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
             aria-label="Close authentication modal"
           >
             <X className="h-5 w-5" />
           </button>
 
           <div className="relative">
-            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-teal-400/20 bg-teal-400/10 text-teal-300 shadow-lg shadow-black/10">
+            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-teal-400/20 bg-teal-400/10 text-teal-300 shadow-lg">
               <Sparkles className="h-7 w-7" />
             </div>
 
@@ -282,7 +304,7 @@ export default function AuthModal({
             <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-300">
               {mode === 'login'
                 ? 'Sign in to request equipment, book labs, and reserve campus spaces.'
-                : 'Create your account to discover and share university resources.'}
+                : 'Create an account to discover or share university resources.'}
             </p>
           </div>
         </div>
@@ -323,13 +345,13 @@ export default function AuthModal({
               <Info className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
 
               <div className="min-w-0 leading-relaxed">
-                <p className="font-bold">Authentication setup required</p>
+                <p className="font-bold">
+                  Authentication setup required
+                </p>
+
                 <p className="mt-1 text-xs">
-                  Configure your Supabase URL and publishable key in{' '}
-                  <code className="rounded bg-amber-100 px-1 py-0.5 font-mono">
-                    .env.local
-                  </code>{' '}
-                  to enable authentication.
+                  Check your Supabase URL and publishable key in
+                  your environment configuration.
                 </p>
               </div>
             </div>
@@ -361,8 +383,12 @@ export default function AuthModal({
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'signup' && (
               <>
+                {/* Full name */}
                 <div>
-                  <label htmlFor="auth-full-name" className={labelClass}>
+                  <label
+                    htmlFor="auth-full-name"
+                    className={labelClass}
+                  >
                     Full name
                   </label>
 
@@ -374,17 +400,25 @@ export default function AuthModal({
                       type="text"
                       autoComplete="name"
                       value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
+                      onChange={(e) =>
+                        setFullName(e.target.value)
+                      }
                       placeholder="Enter your full name"
-                      disabled={isLoading || isConfirmationPending}
+                      disabled={
+                        isLoading || isConfirmationPending
+                      }
                       className={inputClass}
                       required
                     />
                   </div>
                 </div>
 
+                {/* Department */}
                 <div>
-                  <label htmlFor="auth-department" className={labelClass}>
+                  <label
+                    htmlFor="auth-department"
+                    className={labelClass}
+                  >
                     Department / faculty
                   </label>
 
@@ -394,8 +428,12 @@ export default function AuthModal({
                     <select
                       id="auth-department"
                       value={department}
-                      onChange={(e) => setDepartment(e.target.value)}
-                      disabled={isLoading || isConfirmationPending}
+                      onChange={(e) =>
+                        setDepartment(e.target.value)
+                      }
+                      disabled={
+                        isLoading || isConfirmationPending
+                      }
                       className={inputClass}
                     >
                       {popularDepartments.map((dept) => (
@@ -406,11 +444,55 @@ export default function AuthModal({
                     </select>
                   </div>
                 </div>
+
+                {/* Account role */}
+                <div>
+                  <label
+                    htmlFor="auth-role"
+                    className={labelClass}
+                  >
+                    Account type
+                  </label>
+
+                  <div className="relative">
+                    <ShieldCheck className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-teal-700" />
+
+                    <select
+                      id="auth-role"
+                      value={role}
+                      onChange={(e) =>
+                        setRole(e.target.value)
+                      }
+                      disabled={
+                        isLoading || isConfirmationPending
+                      }
+                      className={inputClass}
+                    >
+                      <option value="student">
+                        Student — Request resources
+                      </option>
+
+                      <option value="owner">
+                        Resource Owner — Manage resources
+                      </option>
+                    </select>
+                  </div>
+
+                  <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                    Owners can list resources and manage requests
+                    for resources they own, subject to the
+                    platform's permissions.
+                  </p>
+                </div>
               </>
             )}
 
+            {/* Email */}
             <div>
-              <label htmlFor="auth-email" className={labelClass}>
+              <label
+                htmlFor="auth-email"
+                className={labelClass}
+              >
                 Email address
               </label>
 
@@ -423,17 +505,23 @@ export default function AuthModal({
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="student@campus.edu"
-                  disabled={isLoading || isConfirmationPending}
+                  placeholder="you@example.com"
+                  disabled={
+                    isLoading || isConfirmationPending
+                  }
                   className={inputClass}
                   required
                 />
               </div>
             </div>
 
+            {/* Password */}
             <div>
               <div className="mb-2 flex items-center justify-between gap-2">
-                <label htmlFor="auth-password" className={labelClass + ' mb-0'}>
+                <label
+                  htmlFor="auth-password"
+                  className={labelClass + ' mb-0'}
+                >
                   Password
                 </label>
 
@@ -451,12 +539,18 @@ export default function AuthModal({
                   id="auth-password"
                   type="password"
                   autoComplete={
-                    mode === 'login' ? 'current-password' : 'new-password'
+                    mode === 'login'
+                      ? 'current-password'
+                      : 'new-password'
                   }
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) =>
+                    setPassword(e.target.value)
+                  }
                   placeholder="Enter your password"
-                  disabled={isLoading || isConfirmationPending}
+                  disabled={
+                    isLoading || isConfirmationPending
+                  }
                   className={inputClass}
                   required
                 />
@@ -466,7 +560,9 @@ export default function AuthModal({
             {/* Submit button */}
             <button
               type="submit"
-              disabled={isLoading || isConfirmationPending}
+              disabled={
+                isLoading || isConfirmationPending
+              }
               className="mt-2 flex w-full items-center justify-center gap-2.5 rounded-xl bg-teal-700 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-teal-700/15 transition hover:-translate-y-0.5 hover:bg-teal-800 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-teal-600/20 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isLoading ? (
@@ -483,7 +579,9 @@ export default function AuthModal({
                 </>
               ) : (
                 <>
-                  {mode === 'login' ? 'Sign in to CampusShare' : 'Create account'}
+                  {mode === 'login'
+                    ? 'Sign in to CampusShare'
+                    : 'Create account'}
                   <ArrowRight className="h-4 w-4" />
                 </>
               )}
@@ -495,13 +593,16 @@ export default function AuthModal({
             <div className="mt-5 rounded-2xl border border-teal-200 bg-teal-50 p-4">
               <div className="flex items-center gap-2 text-sm font-bold text-teal-900">
                 <CheckCircle2 className="h-5 w-5 shrink-0 text-teal-700" />
-                Verify your email
+                Check your email
               </div>
 
               <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                We sent a verification link to{' '}
-                <strong className="break-all text-slate-900">{email}</strong>.
-                Open that email and follow the link before signing in.
+                If email confirmation is enabled, follow the
+                link sent to{' '}
+                <strong className="break-all text-slate-900">
+                  {email}
+                </strong>{' '}
+                before signing in.
               </p>
 
               <button
@@ -521,10 +622,13 @@ export default function AuthModal({
               {mode === 'login'
                 ? "Don't have an account yet?"
                 : 'Already registered?'}{' '}
+
               <button
                 type="button"
                 onClick={() =>
-                  switchMode(mode === 'login' ? 'signup' : 'login')
+                  switchMode(
+                    mode === 'login' ? 'signup' : 'login'
+                  )
                 }
                 disabled={isLoading}
                 className="font-bold text-teal-700 underline decoration-teal-300 underline-offset-4 transition hover:text-teal-900 disabled:opacity-50"

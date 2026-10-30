@@ -1,3 +1,4 @@
+import AIResourceAssistant from './AIResourceAssistant'
 
 import React, { useState, useEffect, useCallback } from 'react'
 import {
@@ -451,8 +452,17 @@ export default function ResourceCatalog({
         </div>
 
         {/* Search and filters */}
-        <div className="mt-10 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-3 md:flex-row">
+       {/* AI Resource Assistant */}
+<div className="mt-10">
+  <AIResourceAssistant
+    resources={resources}
+    onSelectResource={handleBookingClick}
+  />
+</div>
+
+{/* Search and filters */}
+<div className="mt-6 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+  <div className="flex flex-col gap-3 md:flex-row">
             <div className="relative min-w-0 flex-1">
               <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
 
