@@ -19,6 +19,7 @@ import {
   CalendarDays,
   Activity,
   X,
+  Plus,
 } from 'lucide-react'
 
 import { useAuth } from '../context/AuthContext'
@@ -169,9 +170,63 @@ export default function OwnerDashboardView({ onExploreCatalog }) {
   const [rejectionReason, setRejectionReason] = useState('')
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
 
+  const [showAddResourceForm, setShowAddResourceForm] = useState(false)
+  const [isAddingResource, setIsAddingResource] = useState(false)
+  const [newResource, setNewResource] = useState({
+    title: '',
+    category: 'equipment',
+    description: '',
+    location: '',
+    requires_approval: true,
+  })
+
   const showToast = (message) => {
     setActionToast(message)
     window.setTimeout(() => setActionToast(''), 4000)
+  }
+
+  const handleAddResource = async (event) => {
+    event.preventDefault()
+    if (!user?.id) {
+      setErrorMsg('Please sign in before adding a resource.')
+      return
+    }
+    if (!newResource.title.trim() || !newResource.location.trim()) {
+      setErrorMsg('Please enter a resource title and location.')
+      return
+    }
+
+    setIsAddingResource(true)
+    setErrorMsg('')
+    try {
+      const { error } = await supabase.from('resources').insert({
+        title: newResource.title.trim(),
+        category: newResource.category,
+        description: newResource.description.trim(),
+        location: newResource.location.trim(),
+        is_active: true,
+        requires_approval: newResource.requires_approval,
+        allowed_departments: ['All Departments'],
+        owner_id: user.id,
+      })
+      if (error) throw error
+
+      setNewResource({
+        title: '',
+        category: 'equipment',
+        description: '',
+        location: '',
+        requires_approval: true,
+      })
+      setShowAddResourceForm(false)
+      showToast('Resource added successfully.')
+      await fetchOwnerData(true)
+    } catch (error) {
+      console.error('[OwnerDashboard] Add resource failed:', error)
+      setErrorMsg(error.message || 'Could not add the resource. Check your Supabase permissions and table columns.')
+    } finally {
+      setIsAddingResource(false)
+    }
   }
 
   const fetchOwnerData = useCallback(
@@ -792,6 +847,53 @@ export default function OwnerDashboardView({ onExploreCatalog }) {
             </div>
           </div>
         </header>
+
+        {/* Add resource */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-extrabold text-slate-950">Add a resource</h2>
+              <p className="mt-1 text-sm text-slate-500">List equipment, laboratories, or spaces for your campus community.</p>
+            </div>
+            <button type="button" onClick={() => setShowAddResourceForm((value) => !value)} className={primaryButtonClass}>
+              <Plus className="h-4 w-4" /> {showAddResourceForm ? 'Close form' : 'Add Resource'}
+            </button>
+          </div>
+
+          {showAddResourceForm && (
+            <form onSubmit={handleAddResource} className="mt-5 grid grid-cols-1 gap-4 border-t border-slate-100 pt-5 md:grid-cols-2">
+              <label className="text-sm font-semibold text-slate-700">Resource title *
+                <input className={`${inputClass} mt-1.5`} value={newResource.title} onChange={(e) => setNewResource({ ...newResource, title: e.target.value })} placeholder="e.g. DSLR Camera Kit" required maxLength={120} />
+              </label>
+              <label className="text-sm font-semibold text-slate-700">Category *
+                <select className={`${inputClass} mt-1.5`} value={newResource.category} onChange={(e) => setNewResource({ ...newResource, category: e.target.value })}>
+                  <option value="equipment">Equipment</option>
+                  <option value="laboratory">Laboratory</option>
+                  <option value="space">Space</option>
+                </select>
+              </label>
+              <label className="text-sm font-semibold text-slate-700">Location *
+                <input className={`${inputClass} mt-1.5`} value={newResource.location} onChange={(e) => setNewResource({ ...newResource, location: e.target.value })} placeholder="e.g. Engineering Block, Room 210" required maxLength={200} />
+              </label>
+              <label className="text-sm font-semibold text-slate-700">Booking policy
+                <select className={`${inputClass} mt-1.5`} value={newResource.requires_approval ? 'yes' : 'no'} onChange={(e) => setNewResource({ ...newResource, requires_approval: e.target.value === 'yes' })}>
+                  <option value="yes">Owner approval required</option>
+                  <option value="no">Standard request</option>
+                </select>
+              </label>
+              <label className="text-sm font-semibold text-slate-700 md:col-span-2">Description
+                <textarea className={`${inputClass} mt-1.5 min-h-24`} value={newResource.description} onChange={(e) => setNewResource({ ...newResource, description: e.target.value })} placeholder="Describe the resource, its use, and any important instructions." maxLength={1000} />
+              </label>
+              <div className="flex flex-wrap gap-3 md:col-span-2">
+                <button type="submit" disabled={isAddingResource} className={primaryButtonClass}>
+                  {isAddingResource ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  {isAddingResource ? 'Saving resource…' : 'Save resource'}
+                </button>
+                <button type="button" onClick={() => setShowAddResourceForm(false)} className={secondaryButtonClass}>Cancel</button>
+              </div>
+            </form>
+          )}
+        </section>
 
         {/* Error message */}
         {errorMsg && (
