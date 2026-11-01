@@ -94,11 +94,11 @@ export default function Footer() {
 
           <div className="inline-flex items-center gap-2 text-xs text-slate-400">
             
-<div className="flex items-center gap-1.5">
-  <span>Made with</span>
-  <Heart className="h-3.5 w-3.5 fill-rose-500 text-rose-500" />
-  <span>by Yugesh &amp; Bhumi for the University Community.</span>
+
+<div className="inline-flex items-center gap-2 text-xs text-slate-400">
+  <span>By Yugesh and Bhumi for the University Community.</span>
 </div>
+
 
           </div>
         </div>
